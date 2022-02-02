@@ -13,19 +13,22 @@ void setup()
   pinMode(SigB, OUTPUT);
   pinMode(input1, INPUT);
   pinMode(input2, INPUT);
-  ledcAttachPin(SigB, 0); //pin5 clock 0
   ledcSetup(0, 20000, 8); //clock 0, freq 20KHz, Resolution 8 bit
+  ledcAttachPin(SigB, 0); //pin5 clock 0
 }
 
 void loop()
 {
-  while(SigBstate==0)
+  gpio_num_t pinA = (gpio_num_t)(18 & 0x1F); //
+  gpio_num_t pinB = (gpio_num_t)(5 & 0x1F); //
+  SigBstate = (GPIO_REG_READ(GPIO_OUT_REG)  >> pinB) & 1U;
+  while(SigBstate == 0)
   {
     //hold to prevent unalignment with SigB
-    SigBstate == bitRead(GPIO_OUT_REG, SigB);
+    SigBstate = (GPIO_REG_READ(GPIO_OUT_REG)  >> pinB) & 1U;
   }
   SigBstate = 0;
-  ledcWrite(0, 4); //set clock0 to 0 dutycycle
+  ledcWrite(0, 10); //set clock0 to 10 dutycycle
   int i = 0;
   int a = 300;
   int pulse = 0;
@@ -33,11 +36,11 @@ void loop()
   {
     pulse = a + (50*i);
     digitalWrite(SigA, HIGH);
-    SigAstate = bitRead(GPIO_OUT_REG, SigA);
+    SigAstate = (GPIO_REG_READ(GPIO_OUT_REG)  >> pinA) & 1U;
     Serial.println(SigAstate);
     delayMicroseconds(pulse);
     digitalWrite(SigA, LOW);
-    SigAstate = bitRead(GPIO_OUT_REG, SigA);
+    SigAstate = (GPIO_REG_READ(GPIO_OUT_REG)  >> pinA) & 1U;
     Serial.println(SigAstate);
     delayMicroseconds(100);
   }
@@ -49,14 +52,14 @@ void loop()
     delayMicroseconds(1000); //debounce
     input1state = digitalRead(input1);//check button
   }
-  ledcWrite(0, 1); //allow pulses on SigB
-  input2state = digitalRead(input2);
-  while(input2state == 1)
+  ledcWrite(0, 10); //allow pulses on SigB
+  input2state = digitalRead(input2); //check if button 2 is pressed
+  while(input2state == 1) //while button 2 is pressed run loop
   {
-    while(SigBstate==0)
+    while(SigBstate == 0)
     {
       //hold to prevent unalignment with SigB
-      SigBstate == bitRead(GPIO_OUT_REG, SigB);
+      SigBstate = (GPIO_REG_READ(GPIO_OUT_REG)  >> pinB) & 1U;
     }
     SigBstate = 0;
     pulse = 0;
@@ -69,7 +72,7 @@ void loop()
       delayMicroseconds(100);
     }
     delayMicroseconds(10000);
-    input2state = digitalRead(input2);
+    input2state = digitalRead(input2); //is button still pressed?
   }
   
  
